@@ -6,7 +6,7 @@ import CreateCategoryService from './CreateCategoryService';
 
 import AppError from '../errors/AppError';
 
-export interface NewTransactionData {
+export interface NewTransactionDTO {
   title: string;
   type: 'income' | 'outcome';
   value: number;
@@ -19,7 +19,7 @@ class CreateTransactionService {
     value,
     type,
     category,
-  }: NewTransactionData): Promise<Transaction> {
+  }: NewTransactionDTO): Promise<Transaction> {
     const transactionsRepository = getCustomRepository(TransactionsRepository);
 
     const { total } = await transactionsRepository.getBalance();
@@ -28,13 +28,13 @@ class CreateTransactionService {
       throw new AppError('Not enought funds for this transaction.', 400);
 
     const createCategory = new CreateCategoryService();
-    const categoryObj = await createCategory.execute({ title: category });
+    const categoryObj = await createCategory.execute(category);
 
     const transaction = transactionsRepository.create({
       title,
       value,
       type,
-      category_id: categoryObj.id,
+      category: categoryObj,
     });
 
     await transactionsRepository.save(transaction);

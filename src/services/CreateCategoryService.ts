@@ -2,19 +2,15 @@ import { getRepository } from 'typeorm';
 
 import Category from '../models/Category';
 
-interface ResquestDTO {
-  title: string;
-}
-
 class CreateCategoryService {
-  public async execute({ title }: ResquestDTO): Promise<Category> {
+  public async execute(title: string): Promise<Category> {
     const categoryRepository = getRepository(Category);
 
-    const foundCategory = await categoryRepository.findOne({
+    const categoryFound = await categoryRepository.findOne({
       where: { title },
     });
 
-    if (foundCategory) return foundCategory;
+    if (categoryFound) return categoryFound;
 
     const category = categoryRepository.create({ title });
     await categoryRepository.save(category);
