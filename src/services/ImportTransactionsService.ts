@@ -4,10 +4,8 @@ import csvParse from 'csv-parse';
 
 import Transaction from '../models/Transaction';
 import CreateTransactionService, {
-  NewTransactionData,
+  NewTransactionDTO,
 } from './CreateTransactionService';
-
-import AppError from '../errors/AppError';
 
 interface RequestDTO {
   destination: string;
@@ -20,25 +18,35 @@ class ImportTransactionsService {
     filename,
   }: RequestDTO): Promise<Transaction[]> {
     const csvFilePath = path.join(destination, filename);
+    const importedNewTransactions = await this.loadCSV(csvFilePath);
 
-    const teste = await this.loadCSV(csvFilePath);
-
-    const importedTransactions: Transaction[] = [];
+    const transactions: Transaction[] = [];
 
     const createTransaction = new CreateTransactionService();
 
-    return importedTransactions;
+    // eslint-disable-next-line no-restricted-syntax
+    for (const newTransaction of importedNewTransactions) {
+      // eslint-disable-next-line no-await-in-loop
+      const response = await createTransaction
+        .execute(newTransaction)
+        .catch(err => {
+          throw err;
+        });
+      transactions.push(response);
+    }
+
+    return transactions;
   }
 
-  private async loadCSV(filePath: string): Promise<NewTransactionData[]> {
+  private async loadCSV(filePath: string): Promise<NewTransactionDTO[]> {
     const readCSVStream = fs.createReadStream(filePath);
     const parseStream = csvParse({ from_line: 2, ltrim: true, rtrim: true });
     const parseCSV = readCSVStream.pipe(parseStream);
 
-    const newTransactionDataList: NewTransactionData[] = [];
+    const newTransactionDataList: NewTransactionDTO[] = [];
 
     parseCSV.on('data', line => {
-      const newTransactionData: NewTransactionData = {
+      const newTransactionData: NewTransactionDTO = {
         title: line[0],
         type: line[1],
         value: line[2],
@@ -51,6 +59,7 @@ class ImportTransactionsService {
       parseCSV.on('end', resolve);
     });
 
+    await fs.promises.unlink(filePath);
     return newTransactionDataList;
   }
 }
