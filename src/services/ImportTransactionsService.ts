@@ -43,16 +43,11 @@ class ImportTransactionsService {
     const parseStream = csvParse({ from_line: 2, ltrim: true, rtrim: true });
     const parseCSV = readCSVStream.pipe(parseStream);
 
-    const newTransactionDataList: NewTransactionDTO[] = [];
+    const csvTransactions: NewTransactionDTO[] = [];
 
     parseCSV.on('data', line => {
-      const newTransactionData: NewTransactionDTO = {
-        title: line[0],
-        type: line[1],
-        value: line[2],
-        category: line[3],
-      };
-      newTransactionDataList.push(newTransactionData);
+      const [title, type, value, category] = line;
+      csvTransactions.push({ title, type, value, category });
     });
 
     await new Promise(resolve => {
@@ -60,7 +55,7 @@ class ImportTransactionsService {
     });
 
     await fs.promises.unlink(filePath);
-    return newTransactionDataList;
+    return csvTransactions;
   }
 }
 
